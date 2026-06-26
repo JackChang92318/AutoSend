@@ -11,27 +11,12 @@
   <script>
     const LIFF_ID = "2010525282-22yCgSgG";
 
-    function base64Utf8Encode(text) {
-        const bytes = new TextEncoder().encode(text);
-        let binary = "";
-        bytes.forEach(byte => {
-            binary += String.fromCharCode(byte);
-        });
-
-        return btoa(binary)
-            .replace(/\+/g, "-")
-            .replace(/\//g, "_")
-            .replace(/=+$/, "");
-    }
-
     function getParam(name) {
       const params = new URLSearchParams(location.search);
 
-      // 直接從 ?text=... 取得
       const direct = params.get(name);
       if (direct) return direct;
 
-      // 有時 LINE 會把參數放在 liff.state
       const state = params.get("liff.state");
       if (state) {
         try {
@@ -50,10 +35,8 @@
         await liff.init({ liffId: LIFF_ID });
 
         const text = getParam("text");
-        const encoded = base64Utf8Encode(text);
 
-        if (!encoded) {
-          alert("沒有找到 text 參數");
+        if (!text) {
           liff.closeWindow();
           return;
         }
@@ -77,7 +60,7 @@
         await liff.sendMessages([
           {
             type: "text",
-            text: encoded
+            text: text
           }
         ]);
 
