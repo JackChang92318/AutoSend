@@ -57,9 +57,9 @@
     const LIFF_ID = "2010525282-22yCgSgG";
     const debug = document.getElementById("debug");
 
-    function log(msg) {
-      debug.textContent += msg + "\n";
-      console.log(msg);
+    function log(text) {
+      debug.textContent += text + "\n";
+      console.log(text);
     }
 
     function base64Utf8Decode(base64) {
@@ -87,6 +87,7 @@
     (async () => {
       try {
         log("目前網址：" + location.href);
+        log("UserAgent：" + navigator.userAgent);
 
         await liff.init({
           liffId: LIFF_ID,
@@ -100,18 +101,20 @@
 
         const context = liff.getContext();
         log("context.type: " + context.type);
+        log("context.viewType: " + context.viewType);
+        log("context.scope: " + JSON.stringify(context.scope));
 
         const message = getMessage();
         log("message: " + message);
 
         if (!message) {
-          log("沒有讀到 msg，不送出");
+          log("沒有 msg，不送出");
           return;
         }
 
         if (!liff.isInClient()) {
           log("目前不是 LIFF browser，不能使用 sendMessages");
-          log("請確認你是點 LIFF URL，不是 Endpoint URL，也不是在 LINE 內建瀏覽器開啟");
+          log("你現在開到的是 external / LINE in-app browser");
           return;
         }
 
@@ -121,6 +124,11 @@
           context.type !== "room"
         ) {
           log("目前不是從聊天室啟動，不能送到聊天室");
+          return;
+        }
+
+        if (!context.scope || !context.scope.includes("chat_message.write")) {
+          log("LIFF app 沒有 chat_message.write scope");
           return;
         }
 
