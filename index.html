@@ -1,136 +1,43 @@
-<!doctype html>
-<html lang="zh-Hant">
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
-  <meta charset="utf-8">
-  <title>LIFF 目前聊天室傳送測試</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>傳送訊息</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      padding: 24px;
-      line-height: 1.6;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 120px;
-      font-size: 16px;
-    }
-
-    button {
-      margin-top: 16px;
-      padding: 12px 18px;
-      font-size: 16px;
-    }
-
-    #status {
-      margin-top: 16px;
-      white-space: pre-wrap;
-    }
-  </style>
 </head>
-
 <body>
-  <h1>LINE 訊息傳送測試</h1>
-
-  <p>如果連結後方帶有 text= 參數，開啟後會自動傳送該訊息到目前聊天室。</p>
-
-  <textarea id="message"></textarea>
-
-  <button id="sendButton">送出</button>
-
-  <div id="status"></div>
-
   <script>
-    const LIFF_ID = "你的_LIFF_ID";
+    (async () => {
+      const LIFF_ID = "YOUR_LIFF_ID"; // ← 換成你的 LIFF ID
 
-    function getParam(name) {
-      const params = new URLSearchParams(location.search);
-      const direct = params.get(name);
-      if (direct) return direct;
+      // 從 URL 參數取得訊息（Base64 編碼），例如 ?msg=5L2g5aW9
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get("msg");
+      const message = raw ? decodeURIComponent(atob(raw)) : null;
 
-      // LIFF 有時會把原 query 放在 liff.state 裡
-      const state = params.get("liff.state");
-      if (state) {
-        try {
-          const url = new URL("https://example.com" + state);
-          return url.searchParams.get(name);
-        } catch (e) {
-          return null;
-        }
-      }
-
-      return null;
-    }
-
-    async function autoSendMessage(text, status) {
-      status.textContent = "正在嘗試傳送訊息，若尚未授權會先跳出 LINE 的權限確認。";
-      try {
-        await liff.sendMessages([
-          {
-            type: "text",
-            text: text
-          }
-        ]);
-        status.textContent = "已送出到目前聊天室。";
-        // 如果要自動關閉視窗，解除下面註解
-        // liff.closeWindow();
-      } catch (error) {
-        status.textContent =
-          "傳送失敗。\n\n可能原因：\n" +
-          "1. LIFF 未啟用 chat_message.write scope\n" +
-          "2. 使用者沒有授權\n" +
-          "3. 不是從 LINE 聊天室中開啟\n" +
-          "4. 目前聊天室或環境不支援\n\n" +
-          "錯誤訊息：" + error.message;
-      }
-    }
-
-    async function main() {
-      const messageBox = document.getElementById("message");
-      const status = document.getElementById("status");
-      const sendButton = document.getElementById("sendButton");
-
-      const textFromUrl = getParam("text");
-      if (textFromUrl) {
-        messageBox.value = textFromUrl;
-        sendButton.style.display = "none";
+      if (!message) {
+        // 沒有帶訊息參數就直接關閉
+        liff.init({ liffId: LIFF_ID }).then(() => liff.closeWindow());
+        return;
       }
 
       try {
         await liff.init({ liffId: LIFF_ID });
-      } catch (error) {
-        status.textContent = "LIFF 初始化失敗：" + error.message;
-        return;
+
+        // sendMessages 只在 LINE 內部瀏覽器且 chat context 下有效
+        await liff.sendMessages([
+          {
+            type: "text",
+            text: message,
+          },
+        ]);
+      } catch (err) {
+        console.error("LIFF sendMessages 失敗:", err);
+      } finally {
+        liff.closeWindow();
       }
-
-      if (!liff.isInClient()) {
-        status.textContent = "請從 LINE App 的聊天室中開啟這個 LIFF 連結。";
-        return;
-      }
-
-      if (textFromUrl) {
-        await autoSendMessage(textFromUrl, status);
-      } else {
-        status.textContent = "如需自動傳送，請在 URL 後面加上 text= 參數。";
-      }
-
-      sendButton.addEventListener("click", async () => {
-        const message = messageBox.value.trim();
-
-        if (!message) {
-          status.textContent = "訊息不可為空。";
-          return;
-        }
-
-        await autoSendMessage(message, status);
-      });
-    }
-
-    main();
+    })();
   </script>
 </body>
 </html>
