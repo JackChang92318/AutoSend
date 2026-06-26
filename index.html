@@ -36,7 +36,7 @@
 <body>
   <h1>LINE 訊息傳送測試</h1>
 
-  <p>如果連結後方帶有 text= 參數，將會嘗試直接發送該訊息到目前聊天室。</p>
+  <p>如果連結後方帶有 text= 參數，開啟後會自動傳送該訊息到目前聊天室。</p>
 
   <textarea id="message"></textarea>
 
@@ -97,6 +97,7 @@
       const textFromUrl = getParam("text");
       if (textFromUrl) {
         messageBox.value = textFromUrl;
+        sendButton.style.display = "none";
       }
 
       try {
