@@ -30,13 +30,25 @@
       return null;
     }
 
+    function base64Utf8Decode(base64) {
+      let normalized = base64.replace(/-/g, "+").replace(/_/g, "/");
+
+      while (normalized.length % 4) {
+        normalized += "=";
+      }
+
+      const binary = atob(normalized);
+      const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+      return new TextDecoder("utf-8").decode(bytes);
+    }
+
     async function main() {
       try {
         await liff.init({ liffId: LIFF_ID });
 
-        const text = getParam("text");
+        const raw = getParam("msg");
 
-        if (!text) {
+        if (!raw) {
           liff.closeWindow();
           return;
         }
@@ -46,16 +58,7 @@
           return;
         }
 
-        const context = liff.getContext();
-
-        if (
-          context.type !== "utou" &&
-          context.type !== "group" &&
-          context.type !== "room"
-        ) {
-          alert("目前不是從聊天室開啟，無法自動傳送");
-          return;
-        }
+        const text = base64Utf8Decode(raw);
 
         await liff.sendMessages([
           {
