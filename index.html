@@ -66,6 +66,29 @@
       return null;
     }
 
+    async function autoSendMessage(text, status) {
+      status.textContent = "正在嘗試傳送訊息，若尚未授權會先跳出 LINE 的權限確認。";
+      try {
+        await liff.sendMessages([
+          {
+            type: "text",
+            text: text
+          }
+        ]);
+        status.textContent = "已送出到目前聊天室。";
+        // 如果要自動關閉視窗，解除下面註解
+        // liff.closeWindow();
+      } catch (error) {
+        status.textContent =
+          "傳送失敗。\n\n可能原因：\n" +
+          "1. LIFF 未啟用 chat_message.write scope\n" +
+          "2. 使用者沒有授權\n" +
+          "3. 不是從 LINE 聊天室中開啟\n" +
+          "4. 目前聊天室或環境不支援\n\n" +
+          "錯誤訊息：" + error.message;
+      }
+    }
+
     async function main() {
       const messageBox = document.getElementById("message");
       const status = document.getElementById("status");
@@ -89,26 +112,7 @@
       }
 
       if (textFromUrl) {
-        try {
-          await liff.sendMessages([
-            {
-              type: "text",
-              text: textFromUrl
-            }
-          ]);
-
-          status.textContent = "已送出到目前聊天室。";
-          // 如果要自動關閉視窗，解除下面註解
-          // liff.closeWindow();
-        } catch (error) {
-          status.textContent =
-            "自動傳送失敗。\n\n可能原因：\n" +
-            "1. 沒有啟用 chat_message.write scope\n" +
-            "2. 使用者沒有授權\n" +
-            "3. 不是從 LINE 聊天室中開啟\n" +
-            "4. 目前聊天室或環境不支援\n\n" +
-            "錯誤訊息：" + error.message;
-        }
+        await autoSendMessage(textFromUrl, status);
       } else {
         status.textContent = "如需自動傳送，請在 URL 後面加上 text= 參數。";
       }
@@ -121,25 +125,7 @@
           return;
         }
 
-        try {
-          await liff.sendMessages([
-            {
-              type: "text",
-              text: message
-            }
-          ]);
-
-          status.textContent = "已送出到目前聊天室。";
-          // liff.closeWindow();
-        } catch (error) {
-          status.textContent =
-            "傳送失敗。\n\n可能原因：\n" +
-            "1. 沒有啟用 chat_message.write scope\n" +
-            "2. 使用者沒有授權\n" +
-            "3. 不是從 LINE 聊天室中開啟\n" +
-            "4. 目前聊天室或環境不支援\n\n" +
-            "錯誤訊息：" + error.message;
-        }
+        await autoSendMessage(message, status);
       });
     }
 
