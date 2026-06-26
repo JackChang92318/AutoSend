@@ -71,10 +71,8 @@
 
     function getMessage() {
       const params = new URLSearchParams(window.location.search);
-
       let raw = params.get("msg");
 
-      // LINE LIFF 有時會把 LIFF URL 後面的參數放進 liff.state
       if (!raw && params.get("liff.state")) {
         const state = params.get("liff.state");
         const stateParams = new URLSearchParams(
@@ -83,19 +81,22 @@
         raw = stateParams.get("msg");
       }
 
-      if (!raw) return null;
-
-      return base64Utf8Decode(raw);
+      return raw ? base64Utf8Decode(raw) : null;
     }
 
     (async () => {
       try {
         log("目前網址：" + location.href);
 
-        await liff.init({ liffId: LIFF_ID });
-        log("liff.init 成功");
+        await liff.init({
+          liffId: LIFF_ID,
+          withLoginOnExternalBrowser: true
+        });
 
+        log("liff.init 成功");
         log("isInClient: " + liff.isInClient());
+        log("isLoggedIn: " + liff.isLoggedIn());
+        log("LINE version: " + liff.getLineVersion());
 
         const context = liff.getContext();
         log("context.type: " + context.type);
@@ -104,26 +105,39 @@
         log("message: " + message);
 
         if (!message) {
-          log("沒有讀到 msg，所以沒有送出");
+          log("沒有讀到 msg，不送出");
+          return;
+        }
+
+        if (!liff.isInClient()) {
+          log("目前不是 LIFF browser，不能使用 sendMessages");
+          log("請確認你是點 LIFF URL，不是 Endpoint URL，也不是在 LINE 內建瀏覽器開啟");
+          return;
+        }
+
+        if (
+          context.type !== "utou" &&
+          context.type !== "group" &&
+          context.type !== "room"
+        ) {
+          log("目前不是從聊天室啟動，不能送到聊天室");
           return;
         }
 
         await liff.sendMessages([
           {
             type: "text",
-            text: message,
-          },
+            text: message
+          }
         ]);
 
-        log("sendMessages 成功，準備關閉");
+        log("sendMessages 成功");
         liff.closeWindow();
 
       } catch (err) {
         log("錯誤名稱：" + err.name);
         log("錯誤訊息：" + err.message);
         console.error(err);
-
-        // debug 階段不要自動關閉，否則你看不到錯誤
       }
     })();
   </script>
