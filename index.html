@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>傳送訊息</title>
+  <title>AutoSend</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
@@ -36,6 +36,94 @@
         console.error("LIFF sendMessages 失敗:", err);
       } finally {
         liff.closeWindow();
+      }
+    })();
+  </script>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>傳送訊息</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+  <h3>LIFF Debug</h3>
+  <pre id="debug"></pre>
+
+  <script>
+    const LIFF_ID = "2010525282-22yCgSgG";
+    const debug = document.getElementById("debug");
+
+    function log(msg) {
+      debug.textContent += msg + "\n";
+      console.log(msg);
+    }
+
+    function base64Utf8Decode(base64) {
+      const normalized = base64.replace(/-/g, "+").replace(/_/g, "/");
+      const binary = atob(normalized);
+      const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+      return new TextDecoder("utf-8").decode(bytes);
+    }
+
+    function getMessage() {
+      const params = new URLSearchParams(window.location.search);
+
+      let raw = params.get("msg");
+
+      // LINE LIFF 有時會把 LIFF URL 後面的參數放進 liff.state
+      if (!raw && params.get("liff.state")) {
+        const state = params.get("liff.state");
+        const stateParams = new URLSearchParams(
+          state.startsWith("?") ? state : "?" + state
+        );
+        raw = stateParams.get("msg");
+      }
+
+      if (!raw) return null;
+
+      return base64Utf8Decode(raw);
+    }
+
+    (async () => {
+      try {
+        log("目前網址：" + location.href);
+
+        await liff.init({ liffId: LIFF_ID });
+        log("liff.init 成功");
+
+        log("isInClient: " + liff.isInClient());
+
+        const context = liff.getContext();
+        log("context.type: " + context.type);
+
+        const message = getMessage();
+        log("message: " + message);
+
+        if (!message) {
+          log("沒有讀到 msg，所以沒有送出");
+          return;
+        }
+
+        await liff.sendMessages([
+          {
+            type: "text",
+            text: message,
+          },
+        ]);
+
+        log("sendMessages 成功，準備關閉");
+        liff.closeWindow();
+
+      } catch (err) {
+        log("錯誤名稱：" + err.name);
+        log("錯誤訊息：" + err.message);
+        console.error(err);
+
+        // debug 階段不要自動關閉，否則你看不到錯誤
       }
     })();
   </script>
