@@ -50,10 +50,11 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-  <h3>LIFF Debug</h3>
+  <h3>LIFF Debug v3</h3>
   <pre id="debug"></pre>
 
   <script>
+    const VERSION = "v3-2026-06-26";
     const LIFF_ID = "2010525282-22yCgSgG";
     const debug = document.getElementById("debug");
 
@@ -86,6 +87,7 @@
 
     (async () => {
       try {
+        log("版本：" + VERSION);
         log("目前網址：" + location.href);
         log("UserAgent：" + navigator.userAgent);
 
@@ -114,7 +116,7 @@
 
         if (!liff.isInClient()) {
           log("目前不是 LIFF browser，不能使用 sendMessages");
-          log("你現在開到的是 external / LINE in-app browser");
+          log("這種狀態下就算在 LINE 裡面，也只是 LINE in-app browser / external");
           return;
         }
 
@@ -128,7 +130,7 @@
         }
 
         if (!context.scope || !context.scope.includes("chat_message.write")) {
-          log("LIFF app 沒有 chat_message.write scope");
+          log("缺少 chat_message.write scope");
           return;
         }
 
