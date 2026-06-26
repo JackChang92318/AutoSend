@@ -6,19 +6,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
+
 <body>
   <script>
     const LIFF_ID = "2010525282-22yCgSgG";
 
     function getParam(name) {
       const params = new URLSearchParams(location.search);
+
+      // 直接從 ?text=... 取得
       const direct = params.get(name);
       if (direct) return direct;
 
+      // 有時 LINE 會把參數放在 liff.state
       const state = params.get("liff.state");
       if (state) {
         try {
-          const url = new URL("https://example.com" + state);
+          const url = new URL("https://dummy.local" + state);
           return url.searchParams.get(name);
         } catch (e) {
           return null;
@@ -29,23 +33,44 @@
     }
 
     async function main() {
-      const raw = getParam("msg");
-      const text = raw ? decodeURIComponent(atob(raw)) : null;
-
       try {
         await liff.init({ liffId: LIFF_ID });
-      } catch (e) {
-        return;
-      }
 
-      if (!liff.isInClient() || !text) return;
+        const text = getParam("text");
 
-      try {
-        await liff.sendMessages([{ type: "text", text }]);
-      } catch (e) {
-        // 靜默失敗
-      } finally {
+        if (!text) {
+          alert("沒有找到 text 參數");
+          liff.closeWindow();
+          return;
+        }
+
+        if (!liff.isInClient()) {
+          alert("請從 LINE 聊天室中的 LIFF 連結開啟");
+          return;
+        }
+
+        const context = liff.getContext();
+
+        if (
+          context.type !== "utou" &&
+          context.type !== "group" &&
+          context.type !== "room"
+        ) {
+          alert("目前不是從聊天室開啟，無法自動傳送");
+          return;
+        }
+
+        await liff.sendMessages([
+          {
+            type: "text",
+            text: text
+          }
+        ]);
+
         liff.closeWindow();
+
+      } catch (error) {
+        alert("傳送失敗：" + (error.message || error));
       }
     }
 
