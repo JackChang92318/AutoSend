@@ -1,155 +1,131 @@
-<!-- <!DOCTYPE html>
-<html lang="zh-TW">
+<!doctype html>
+<html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AutoSend</title>
+  <meta charset="utf-8">
+  <title>LINE 訊息傳送測試</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 24px;
+      line-height: 1.6;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      font-size: 16px;
+    }
+
+    button {
+      margin-top: 16px;
+      padding: 12px 18px;
+      font-size: 16px;
+    }
+
+    #status {
+      margin-top: 16px;
+      white-space: pre-wrap;
+    }
+  </style>
 </head>
+
 <body>
+  <h1>LINE 訊息傳送測試</h1>
+
+  <p>這個頁面會把下面的文字送到「目前開啟此頁面的 LINE 聊天室」。</p>
+
+  <textarea id="message"></textarea>
+
+  <button id="sendButton">確認傳送到目前聊天室</button>
+
+  <div id="status"></div>
+
   <script>
-    (async () => {
-      const LIFF_ID = "2010525282-22yCgSgG"; // ← 換成你的 LIFF ID
+    const LIFF_ID = "2010525282-22yCgSgG";
 
-      // 從 URL 參數取得訊息（Base64 編碼），例如 ?msg=5L2g5aW9
-      const params = new URLSearchParams(window.location.search);
-      const raw = params.get("msg");
-      const message = raw ? decodeURIComponent(atob(raw)) : null;
+    function getParam(name) {
+      const params = new URLSearchParams(location.search);
+      const direct = params.get(name);
+      if (direct) return direct;
 
-      if (!message) {
-        // 沒有帶訊息參數就直接關閉
-        liff.init({ liffId: LIFF_ID }).then(() => liff.closeWindow());
-        return;
+      const state = params.get("liff.state");
+      if (state) {
+        try {
+          const url = new URL("https://example.com" + state);
+          return url.searchParams.get(name);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      return null;
+    }
+
+    async function sendMessage(text, status) {
+      status.textContent = "正在傳送訊息...";
+      await liff.sendMessages([
+        {
+          type: "text",
+          text: text
+        }
+      ]);
+      status.textContent = "已送出到目前聊天室。";
+    }
+
+    async function main() {
+      const messageBox = document.getElementById("message");
+      const status = document.getElementById("status");
+      const sendButton = document.getElementById("sendButton");
+
+      const textFromUrl = getParam("text");
+      if (textFromUrl) {
+        messageBox.value = textFromUrl;
       }
 
       try {
         await liff.init({ liffId: LIFF_ID });
-
-        // sendMessages 只在 LINE 內部瀏覽器且 chat context 下有效
-        await liff.sendMessages([
-          {
-            type: "text",
-            text: message,
-          },
-        ]);
-      } catch (err) {
-        console.error("LIFF sendMessages 失敗:", err);
-      } finally {
-        liff.closeWindow();
-      }
-    })();
-  </script>
-</body>
-</html> -->
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>傳送訊息</title>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-</head>
-<body>
-  <h3>LIFF Debug v3</h3>
-  <pre id="debug"></pre>
-
-  <script>
-    const VERSION = "v3-2026-06-26";
-    const LIFF_ID = "2010525282-22yCgSgG";
-    const debug = document.getElementById("debug");
-
-    function log(text) {
-      debug.textContent += text + "\n";
-      console.log(text);
-    }
-
-    function base64Utf8Decode(base64) {
-      const normalized = base64.replace(/-/g, "+").replace(/_/g, "/");
-      const binary = atob(normalized);
-      const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
-      return new TextDecoder("utf-8").decode(bytes);
-    }
-
-    function getMessage() {
-      const params = new URLSearchParams(window.location.search);
-      let raw = params.get("msg");
-
-      if (!raw && params.get("liff.state")) {
-        const state = params.get("liff.state");
-        const stateParams = new URLSearchParams(
-          state.startsWith("?") ? state : "?" + state
-        );
-        raw = stateParams.get("msg");
+      } catch (error) {
+        status.textContent = "LIFF 初始化失敗：" + (error.message || error);
+        return;
       }
 
-      return raw ? base64Utf8Decode(raw) : null;
-    }
+      if (!liff.isInClient()) {
+        status.textContent = "請從 LINE App 的聊天室中開啟此 LIFF 連結。";
+        return;
+      }
 
-    (async () => {
-      try {
-        log("版本：" + VERSION);
-        log("目前網址：" + location.href);
-        log("UserAgent：" + navigator.userAgent);
+      if (textFromUrl) {
+        try {
+          await sendMessage(textFromUrl, status);
+          // liff.closeWindow();
+        } catch (error) {
+          status.textContent = "傳送失敗：" + (error.message || error);
+        }
+      } else {
+        status.textContent = "請確認文字後，再按下送出按鈕。";
+      }
 
-        await liff.init({
-          liffId: LIFF_ID,
-          withLoginOnExternalBrowser: true
-        });
-
-        log("liff.init 成功");
-        log("isInClient: " + liff.isInClient());
-        log("isLoggedIn: " + liff.isLoggedIn());
-        log("LINE version: " + liff.getLineVersion());
-
-        const context = liff.getContext();
-        log("context.type: " + context.type);
-        log("context.viewType: " + context.viewType);
-        log("context.scope: " + JSON.stringify(context.scope));
-
-        const message = getMessage();
-        log("message: " + message);
-
+      sendButton.addEventListener("click", async () => {
+        const message = messageBox.value.trim();
         if (!message) {
-          log("沒有 msg，不送出");
+          status.textContent = "訊息不可為空。";
           return;
         }
 
-        if (!liff.isInClient()) {
-          log("目前不是 LIFF browser，不能使用 sendMessages");
-          log("這種狀態下就算在 LINE 裡面，也只是 LINE in-app browser / external");
-          return;
+        try {
+          await sendMessage(message, status);
+          // liff.closeWindow();
+        } catch (error) {
+          status.textContent = "傳送失敗：" + (error.message || error);
         }
+      });
+    }
 
-        if (
-          context.type !== "utou" &&
-          context.type !== "group" &&
-          context.type !== "room"
-        ) {
-          log("目前不是從聊天室啟動，不能送到聊天室");
-          return;
-        }
-
-        if (!context.scope || !context.scope.includes("chat_message.write")) {
-          log("缺少 chat_message.write scope");
-          return;
-        }
-
-        await liff.sendMessages([
-          {
-            type: "text",
-            text: message
-          }
-        ]);
-
-        log("sendMessages 成功");
-        liff.closeWindow();
-
-      } catch (err) {
-        log("錯誤名稱：" + err.name);
-        log("錯誤訊息：" + err.message);
-        console.error(err);
-      }
-    })();
+    main();
   </script>
 </body>
 </html>
