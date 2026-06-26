@@ -2,48 +2,11 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
-  <title>LINE 訊息傳送測試</title>
+  <title>Auto Send</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      padding: 24px;
-      line-height: 1.6;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 120px;
-      font-size: 16px;
-    }
-
-    button {
-      margin-top: 16px;
-      padding: 12px 18px;
-      font-size: 16px;
-    }
-
-    #status {
-      margin-top: 16px;
-      white-space: pre-wrap;
-    }
-  </style>
 </head>
-
 <body>
-  <h1>LINE 訊息傳送測試</h1>
-
-  <p>這個頁面會把下面的文字送到「目前開啟此頁面的 LINE 聊天室」。</p>
-
-  <textarea id="message"></textarea>
-
-  <button id="sendButton">確認傳送到目前聊天室</button>
-
-  <div id="status"></div>
-
   <script>
     const LIFF_ID = "2010525282-22yCgSgG";
 
@@ -65,64 +28,25 @@
       return null;
     }
 
-    async function sendMessage(text, status) {
-      status.textContent = "正在傳送訊息...";
-      await liff.sendMessages([
-        {
-          type: "text",
-          text: text
-        }
-      ]);
-      status.textContent = "已送出到目前聊天室。";
-    }
-
     async function main() {
-      const messageBox = document.getElementById("message");
-      const status = document.getElementById("status");
-      const sendButton = document.getElementById("sendButton");
-
-      const textFromUrl = getParam("text");
-      if (textFromUrl) {
-        messageBox.value = textFromUrl;
-      }
+      const raw = getParam("msg");
+      const text = raw ? decodeURIComponent(atob(raw)) : null;
 
       try {
         await liff.init({ liffId: LIFF_ID });
-      } catch (error) {
-        status.textContent = "LIFF 初始化失敗：" + (error.message || error);
+      } catch (e) {
         return;
       }
 
-      if (!liff.isInClient()) {
-        status.textContent = "請從 LINE App 的聊天室中開啟此 LIFF 連結。";
-        return;
+      if (!liff.isInClient() || !text) return;
+
+      try {
+        await liff.sendMessages([{ type: "text", text }]);
+      } catch (e) {
+        // 靜默失敗
+      } finally {
+        liff.closeWindow();
       }
-
-      if (textFromUrl) {
-        try {
-          await sendMessage(textFromUrl, status);
-          // liff.closeWindow();
-        } catch (error) {
-          status.textContent = "傳送失敗：" + (error.message || error);
-        }
-      } else {
-        status.textContent = "請確認文字後，再按下送出按鈕。";
-      }
-
-      sendButton.addEventListener("click", async () => {
-        const message = messageBox.value.trim();
-        if (!message) {
-          status.textContent = "訊息不可為空。";
-          return;
-        }
-
-        try {
-          await sendMessage(message, status);
-          // liff.closeWindow();
-        } catch (error) {
-          status.textContent = "傳送失敗：" + (error.message || error);
-        }
-      });
     }
 
     main();
