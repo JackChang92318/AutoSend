@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <title>LIFF 目前聊天室傳送測試</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 24px;
+      line-height: 1.6;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      font-size: 16px;
+    }
+
+    button {
+      margin-top: 16px;
+      padding: 12px 18px;
+      font-size: 16px;
+    }
+
+    #status {
+      margin-top: 16px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>LINE 訊息傳送測試</h1>
+
+  <p>如果連結後方帶有 text= 參數，將會嘗試直接發送該訊息到目前聊天室。</p>
+
+  <textarea id="message"></textarea>
+
+  <button id="sendButton">送出</button>
+
+  <div id="status"></div>
+
+  <script>
+    const LIFF_ID = "你的_LIFF_ID";
+
+    function getParam(name) {
+      const params = new URLSearchParams(location.search);
+      const direct = params.get(name);
+      if (direct) return direct;
+
+      // LIFF 有時會把原 query 放在 liff.state 裡
+      const state = params.get("liff.state");
+      if (state) {
+        try {
+          const url = new URL("https://example.com" + state);
+          return url.searchParams.get(name);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      return null;
+    }
+
+    async function main() {
+      const messageBox = document.getElementById("message");
+      const status = document.getElementById("status");
+      const sendButton = document.getElementById("sendButton");
+
+      const textFromUrl = getParam("text");
+      if (textFromUrl) {
+        messageBox.value = textFromUrl;
+      }
+
+      try {
+        await liff.init({ liffId: LIFF_ID });
+      } catch (error) {
+        status.textContent = "LIFF 初始化失敗：" + error.message;
+        return;
+      }
+
+      if (!liff.isInClient()) {
+        status.textContent = "請從 LINE App 的聊天室中開啟這個 LIFF 連結。";
+        return;
+      }
+
+      if (textFromUrl) {
+        try {
+          await liff.sendMessages([
+            {
+              type: "text",
+              text: textFromUrl
+            }
+          ]);
+
+          status.textContent = "已送出到目前聊天室。";
+          // 如果要自動關閉視窗，解除下面註解
+          // liff.closeWindow();
+        } catch (error) {
+          status.textContent =
+            "自動傳送失敗。\n\n可能原因：\n" +
+            "1. 沒有啟用 chat_message.write scope\n" +
+            "2. 使用者沒有授權\n" +
+            "3. 不是從 LINE 聊天室中開啟\n" +
+            "4. 目前聊天室或環境不支援\n\n" +
+            "錯誤訊息：" + error.message;
+        }
+      } else {
+        status.textContent = "如需自動傳送，請在 URL 後面加上 text= 參數。";
+      }
+
+      sendButton.addEventListener("click", async () => {
+        const message = messageBox.value.trim();
+
+        if (!message) {
+          status.textContent = "訊息不可為空。";
+          return;
+        }
+
+        try {
+          await liff.sendMessages([
+            {
+              type: "text",
+              text: message
+            }
+          ]);
+
+          status.textContent = "已送出到目前聊天室。";
+          // liff.closeWindow();
+        } catch (error) {
+          status.textContent =
+            "傳送失敗。\n\n可能原因：\n" +
+            "1. 沒有啟用 chat_message.write scope\n" +
+            "2. 使用者沒有授權\n" +
+            "3. 不是從 LINE 聊天室中開啟\n" +
+            "4. 目前聊天室或環境不支援\n\n" +
+            "錯誤訊息：" + error.message;
+        }
+      });
+    }
+
+    main();
+  </script>
+</body>
+</html>
