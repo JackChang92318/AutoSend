@@ -18,13 +18,30 @@
       if (direct) return direct;
 
       const state = params.get("liff.state");
-      if (state) {
-        try {
-          const url = new URL("https://dummy.local" + state);
-          return url.searchParams.get(name);
-        } catch (e) {
-          return null;
+      if (!state) return null;
+
+      const candidates = [state];
+
+      try {
+        candidates.push(decodeURIComponent(state));
+      } catch (e) {}
+
+      for (const candidate of candidates) {
+        let queryPart = candidate;
+
+        const questionIndex = candidate.indexOf("?");
+        if (questionIndex >= 0) {
+          queryPart = candidate.slice(questionIndex);
         }
+
+        if (!queryPart.startsWith("?")) {
+          queryPart = "?" + queryPart.replace(/^\/+/, "");
+        }
+
+        const stateParams = new URLSearchParams(queryPart);
+        const value = stateParams.get(name);
+
+        if (value) return value;
       }
 
       return null;
@@ -49,7 +66,6 @@
         const raw = getParam("msg");
 
         if (!raw) {
-          liff.closeWindow();
           return;
         }
 
