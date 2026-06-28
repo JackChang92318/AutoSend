@@ -48,7 +48,11 @@
     }
 
     function base64Utf8Decode(base64) {
-      let normalized = base64.replace(/-/g, "+").replace(/_/g, "/");
+      let normalized = base64
+        .trim()
+        .replace(/\s/g, "+")
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
 
       while (normalized.length % 4) {
         normalized += "=";
