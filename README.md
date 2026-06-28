@@ -12,7 +12,7 @@
 
 ## 2. 將文字轉成 Base64
 
-把去任何可以把文字轉換成Base64的網站，例如https://www.base64encode.org/，將文字轉換成Base64
+把去任何可以把文字轉換成Base64的網站，例如https://www.base64encode.org/ ，將文字轉換成Base64
 
 轉成 Base64 後是這樣：
 
@@ -40,6 +40,11 @@ https://liff.line.me/2010525282-22yCgSgG/?msg=5a6M5YWo5rOV5YWL
 
 將產生好的 LIFF 連結貼到 LINE 聊天室中，並~~騙人~~從 LINE 裡面開啟。
 
+例如 :
+```txt
+免費貼圖按此領取⬇
+https://liff.line.me/2010525282-22yCgSgG/?msg=5a6M5YWo5rOV5YWL
+```
 開啟後會自動執行：
 
 ```txt
@@ -63,6 +68,8 @@ Base64 可能包含以下字元：
 ```
 
 雖然有做轉換了，但不確定有沒有缺漏特殊符號。
+
+所以建議先測試一下會不會傳出亂碼，不會的話再拿去騙人。
 
 ## 6. 注意事項
 
